@@ -2,11 +2,11 @@
 Adafruit's Arduino driver for the RA8875 TFT driver with BTE Extension
 
 
-Added sume new functions to Display Images from SPI, Moving and Clipping between Layers with BTE.
+Added some new functions to Display Images from SPI, Moving and Clipping between Layers with BTE.
 
- tft.Transparent_Mode(); 
+tft.Transparent_Mode(); 
  
- tft.writeTo(LAyer 1 or 2); set Layer!
+tft.writeTo(LAyer 1 or 2); set Layer!
  
 tft.layerEffect(choice) ->LAYER1, LAYER2, TRANSPARENT, LIGHTEN, OR, AND, FLOATING
 
