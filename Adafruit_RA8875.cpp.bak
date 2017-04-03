@@ -76,20 +76,6 @@ Adafruit_RA8875::Adafruit_RA8875(uint8_t CS, uint8_t RST) : Adafruit_GFX(800, 48
 /**************************************************************************/
 boolean Adafruit_RA8875::begin(enum RA8875sizes s) {
   _size = s;
-_errorCode = 0;
-	_size = s;
-	_rotation = 0;
-	_portrait = false;
-	_inited = false;
-	_sleep = false;
-	_hasLayerLimits = false;
-	_maxLayers = 2;
-	_currentLayer = 1;
-	_useMultiLayers = true;//starts with one layer only
-	_currentMode = false;
-	_brightness = 255;
-	_cursorX = 0; _cursorY = 0; _scrollXL = 0; _scrollXR = 0; _scrollYT = 0; _scrollYB = 0;
-	
 
   if (_size == RA8875_480x272) {
     _width = 480;
