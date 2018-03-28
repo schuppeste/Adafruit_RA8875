@@ -1283,6 +1283,12 @@ uint8_t  Adafruit_RA8875::readData(void)
   return x;
 }
 
+void Adafruit_RA8875::Write_Dir(uchar Cmd,uchar Data)
+{
+  writeCommand(Cmd);
+  writeData(Data);
+}
+
 /**************************************************************************/
 /*!
 
@@ -1689,7 +1695,7 @@ void Adafruit_RA8875::Delay100ms(uint i)
 }
 
 void Adafruit_RA8875::NextStep(void)
-{ 
+{ boolean next=false;
  	while(next)
 		{
 			Delay100ms(1);

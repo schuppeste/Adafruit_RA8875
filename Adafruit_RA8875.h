@@ -31,20 +31,22 @@
  #include "WProgram.h"
 #endif
 
-#ifdef __AVR
+#ifdef __AVR__
   #include <avr/pgmspace.h>
-#elif defined(ESP8266)
-  #include <pgmspace.h>
 #endif
 
 #include <Adafruit_GFX.h>
 
 #ifndef _ADAFRUIT_RA8875_H
 #define _ADAFRUIT_RA8875_H
+#define uchar      unsigned char
+#define uint       unsigned int
+#define ulong      unsigned long
 
 // Sizes!
 enum RA8875sizes { RA8875_480x272, RA8875_800x480 };
-
+          	  #define	cSetD3		     0x08
+#define	cSetD2		     0x04
 // Touch screen cal structs
 typedef struct Point 
 {
@@ -62,37 +64,151 @@ typedef struct //Matrix
           Fn,
           Divider ;
 } tsMatrix_t;
-
+enum RA8875pattern{ P8X8, P16X16 };
+enum RA8875btedatam{ CONT, RECT };
+enum RA8875btelayer{ SOURCE, DEST };
+enum RA8875boolean { LAYER1, LAYER2, TRANSPARENT, LIGHTEN, OR, AND, FLOATING };//for LTPR0
+#include "_utility/RA8875Registers.h"
 class Adafruit_RA8875 : public Adafruit_GFX {
  public:
+ 	uint8_t					maxLayers;
+	uint8_t		_FNCR0Reg; 
+#define RA8875_FNCR0				  0x21//Font Control Register 0
+#define RA8875_MWCR1  					0x41//Memory Write Control Register 1
+#define RA8875_LTPR0            	  0x52
+
+//BTE Raster OPerations - there's 16 possible operations but these are the main ones likely to be useful
+#define RA8875_BTEROP_SOURCE	0xC0	//Overwrite dest with source (no mixing) *****THIS IS THE DEFAULT OPTION****
+#define RA8875_BTEROP_BLACK		0xo0	//all black
+#define RA8875_BTEROP_WHITE		0xf0	//all white
+#define RA8875_BTEROP_DEST		0xA0    //destination unchanged
+#define RA8875_BTEROP_ADD		0xE0    //ADD (brighter)
+#define RA8875_BTEROP_SUBTRACT	0x20	//SUBTRACT (darker)
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//                            Color Registers
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#define RA8875_BGCR0				  0x60//Background Color Register 0 (R)
+#define RA8875_BGCR1				  0x61//Background Color Register 1 (G)
+#define RA8875_BGCR2				  0x62//Background Color Register 2 (B)
+#define RA8875_FGCR0				  0x63//Foreground Color Register 0 (R)
+#define RA8875_FGCR1				  0x64//Foreground Color Register 1 (G)
+#define RA8875_FGCR2				  0x65//Foreground Color Register 2 (B)
+#define RA8875_BGTR0				  0x67//Background Color Register for Transparent 0 (R)
+#define RA8875_BGTR1				  0x68//Background Color Register for Transparent 1 (G)
+#define RA8875_BGTR2				  0x69//Background Color Register for Transparent 2 (B)
+#if !defined(swapvals)
+	#define swapvals(a, b) { typeof(a) t = a; a = b; b = t; }
+#endif
+	volatile uint8_t		_MWCR0Reg; //keep track of the register 		  [0x40]
+		void 	changeMode(bool m);
+		bool					_portrait;
+	uint8_t					currentLayer;
+		int16_t					_cursorX, _cursorY;//try to internally track text cursor...
+			//scroll vars ----------------------------
+	int16_t					_scrollXL,_scrollXR,_scrollYT,_scrollYB;
+		
+		uint8_t					_brightness;
+	uint8_t					_rotation;
+	uint8_t					_initIndex;
+
+	bool					_sleep;
+
+
+	uint8_t					_maxLayers;
+	bool					_useMultiLayers;
+	uint8_t					_currentLayer;
+
+	bool 					_hasLayerLimits;//helper
+		bool					_inited;//true when init has been ended
+	uint8_t					_fontSpacing;
+	uint8_t					_fontInterline;
+
+	int16_t 		 		WIDTH, HEIGHT;//absolute
+	int16_t					_activeWindowXL;
+	int16_t					_activeWindowXR;
+	int16_t					_activeWindowYT;
+	int16_t					_activeWindowYB;
+	uint8_t					_errorCode;
   Adafruit_RA8875(uint8_t cs, uint8_t rst);
-  
+  enum RA8875writes { L1, L2, CGRAM, PATTERN, CURSOR };
   boolean begin(enum RA8875sizes s);
   void    softReset(void);
   void    displayOn(boolean on);
   void    sleep(boolean sleep);
+  	void 		waitBusy(uint8_t res=0x80);//0x80, 0x40(BTE busy), 0x01(DMA busy)
+	void 		BTE_size(int16_t w, int16_t h);
+  	//boolean 	useLayers(boolean on);
+	void		writeTo(enum RA8875writes d);//TESTING
+	//void 		layerEffect(enum RA8875boolean efx);
+	void 		layerTransparency(uint8_t layer1,uint8_t layer2);
+void  layerEffect(enum RA8875boolean efx);
+void	Text_Foreground_Color1(uint b_color);
+void	Text_Background_Color1(uint b_color);
+void Write_Dir(uchar Cmd,uchar Data);
+void String(const char *str);
+//void setTransparentColor(uint16_t color);
+void Scroll_Window(uint XL,uint XR ,uint YT ,uint YB);
+void Scroll(uint X,uint Y);
+void DMA_block_mode_size_setting(uint BWR,uint BHR,uint SPWR);
+void DMA_Start_address_setting(ulong set_address);
+void DMA_block_move(uint16_t X,uint16_t Y,uint16_t BWR,uint16_t BHR,uint16_t SPWR,uint64_t start_address);
+  void dispicown(uint16_t x,uint16_t y, uint16_t w,uint16_t h,uint64_t start);
+  void DMA_Start_enable(void);
+void writeTo(uint8_t d);
+void XY_Coordinate(uint16_t X,uint16_t Y);
 
   /* Text functions */
+ 
+
   void    textMode(void);
   void    textSetCursor(uint16_t x, uint16_t y);
+  void    FontWrite_Position(uint16_t x, uint16_t y);
   void    textColor(uint16_t foreColor, uint16_t bgColor);
   void    textTransparent(uint16_t foreColor);
   void    textEnlarge(uint8_t scale);
   void    textWrite(const char* buffer, uint16_t len=0);
+  void		Active_Window(uint XL,uint XR ,uint YT ,uint YB);
+  void Chk_Busy(void);
+  void Chk_BTE_Busy(void);
+  void Chk_DMA_Busy(void);
+  void MemoryWrite_Position(uint X,uint Y);
+  void Delay1ms(uint i);
+  void Delay10ms(uint i);
+  void Delay100ms(uint i);
+  void NextStep(void);
+  void CutPictrue(uchar picnum,uint x1,uint y1,uint x2,uint y2,unsigned long x,unsigned long y);
+  //void	 	BTE_fromTo(int16_t SX,int16_t DX ,int16_t SY ,int16_t DY);
+	void	 	BTE_moveFrom(int16_t SX,int16_t SY);
+	void	 	BTE_moveTo(int16_t DX,int16_t DY);
+	//void 		BTE_source_destination(uint16_t SX,uint16_t DX ,uint16_t SY ,uint16_t DY);
+	void		BTE_ropcode(unsigned char setx);//
+	void 		BTE_enable(bool on);//
+	void 		BTE_dataMode(enum RA8875btedatam m);//CONT,RECT
+	void 		BTE_layer(enum RA8875btelayer sd,uint8_t l);//SOURCE,DEST - 1 or 2
+	void		BTE_move(int16_t SourceX, int16_t SourceY, int16_t Width, int16_t Height, int16_t DestX, int16_t DestY, uint8_t SourceLayer=0, uint8_t DestLayer=0, bool Transparent = false, uint8_t ROP=RA8875_BTEROP_SOURCE, bool Monochrome=false, bool ReverseDir = false);
 
+//  void DMA_block_mode_size_setting(uint BWR,uint BHR,uint SPWR);
+  void dispic(uchar picnum);
+
+  void DMA_Continuous_mode(void);
+  void DMA_Continuous_mode_size_setting(uint16_t set_size);
   /* Graphics functions */
+  void Transparent_Mode(void);
+  void layer2_1_transparency(uint8_t setx);
   void    graphicsMode(void);
   void    setXY(uint16_t x, uint16_t y);
   void    pushPixels(uint32_t num, uint16_t p);
   void    fillRect(void);
-
   /* Adafruit_GFX functions */
   void    drawPixel(int16_t x, int16_t y, uint16_t color);
   void    drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
   void    drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
   
   /* HW accelerated wrapper functions (override Adafruit_GFX prototypes) */
+ 
   void    fillScreen(uint16_t color);
+  void BTE_Source(uint SX,uint DX ,uint SY ,uint DY);
+  void BTE_Size(uint width,uint height);
   void    drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
   void    drawRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
   void    fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
@@ -104,14 +220,14 @@ class Adafruit_RA8875 : public Adafruit_GFX {
   void    fillEllipse(int16_t xCenter, int16_t yCenter, int16_t longAxis, int16_t shortAxis, uint16_t color);
   void    drawCurve(int16_t xCenter, int16_t yCenter, int16_t longAxis, int16_t shortAxis, uint8_t curvePart, uint16_t color);
   void    fillCurve(int16_t xCenter, int16_t yCenter, int16_t longAxis, int16_t shortAxis, uint8_t curvePart, uint16_t color);
-  
+  void setlash(void);
   /* Backlight */
   void    GPIOX(boolean on);
   void    PWM1config(boolean on, uint8_t clock);
   void    PWM2config(boolean on, uint8_t clock);
   void    PWM1out(uint8_t p);
   void    PWM2out(uint8_t p);
-
+void setflash(void);
   /* Touch screen */
   void    touchEnable(boolean on);
   boolean touched(void);
@@ -125,8 +241,10 @@ class Adafruit_RA8875 : public Adafruit_GFX {
   void    writeCommand(uint8_t d);
   uint8_t readStatus(void);
   boolean waitPoll(uint8_t r, uint8_t f);
+  boolean waitPollvar(uint8_t r, uint8_t f);
   uint16_t width(void);
   uint16_t height(void);
+#define	cSetD7		     0x80
 
   /* Play nice with Arduino's Print class */
   virtual size_t write(uint8_t b) {
@@ -143,6 +261,7 @@ class Adafruit_RA8875 : public Adafruit_GFX {
   void initialize(void);
   
   /* GFX Helper Functions */
+
   void circleHelper(int16_t x0, int16_t y0, int16_t r, uint16_t color, bool filled);
   void rectHelper  (int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color, bool filled);
   void triangleHelper(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2, int16_t y2, uint16_t color, bool filled);
@@ -153,6 +272,8 @@ class Adafruit_RA8875 : public Adafruit_GFX {
   uint16_t _width, _height;
   uint8_t _textScale;
   enum RA8875sizes _size;
+   private:
+	volatile bool 			_currentMode;
 };
 
 // Colors (RGB565)
